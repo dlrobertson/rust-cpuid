@@ -8,9 +8,9 @@ pub mod featinfo;
 pub mod extinfo;
 pub mod featext;
 
-use std::ffi::CString;
+use std::str;
 use common::{CPUIdErr, CPUIdResult};
-use common::{cpuid_get_ext_fn_max, cpuid_get_name};
+use common::{cpuid_get_ext_fn_max, cpuid_get_name, cpuid_get_brand_string};
 use featinfo::{CPUFeatureBits, CPUInfo};
 use extinfo::{CPUExtensionBits};
 use featext::{CPUFeatureExtensionBits};
@@ -25,9 +25,12 @@ pub struct CPUId {
 impl CPUId {
     pub fn new() -> CPUId {
         let (high_value, vendor_str) = unsafe {
-            let res = CString::new("             ").unwrap().into_raw();
-            let value = cpuid_get_name(res);
-            let vendor_str = String::from_raw_parts(res as *mut u8, 12, 12);
+            let res: [u8; 12] = [0; 12];
+            let value = cpuid_get_name(res.as_ptr() as *mut u8);
+            let vendor_str = match str::from_utf8(&res) {
+                Ok(res) => res.to_owned(),
+                Err(_) => panic!("Could not create the vendor string")
+            };
             (value, vendor_str)
         };
         let max = if high_value < 1 {
@@ -55,15 +58,15 @@ impl CPUId {
     }
 
     pub fn feature_bits(&self) -> CPUIdResult<CPUFeatureBits> {
-        if self.high_value < 1 {
+        if self.high_value <= 0x1 {
             Err(CPUIdErr::OutOfRange(self.high_value, 1))
         } else {
             Ok(CPUFeatureBits::new())
         }
     }
 
-    pub fn stepping_bits(&self) -> CPUIdResult<CPUInfo> {
-        if self.high_value < 1 {
+    pub fn smf_bits(&self) -> CPUIdResult<CPUInfo> {
+        if self.high_value <= 0x1 {
             Err(CPUIdErr::OutOfRange(self.high_value, 1))
         } else {
             Ok(CPUInfo::new())
@@ -71,15 +74,33 @@ impl CPUId {
     }
 
     pub fn extension_bits(&self) -> CPUIdResult<CPUExtensionBits> {
-        if self.high_value < 1 {
+        if self.ext_fn_max.map(|x| x <= 0x80000001).unwrap_or(false) {
             Err(CPUIdErr::OutOfRange(self.high_value, 1))
         } else {
             Ok(CPUExtensionBits::new())
         }
     }
 
+    pub fn brand_string(&self) -> CPUIdResult<String> {
+        if self.ext_fn_max.map(|x| x <= 0x80000004).unwrap_or(false) {
+            Err(CPUIdErr::OutOfRange(self.high_value, 1))
+        } else {
+            unsafe {
+                let res: [u8; 48] = [0; 48];
+                cpuid_get_brand_string(res.as_ptr() as *mut u8);
+                let brand_str = str::from_utf8(&res);
+                match brand_str {
+                    Ok(res) => Ok(res.to_owned()),
+                    Err(_) => Err(
+                        CPUIdErr::Other("Could not create brand string".to_owned())
+                        )
+                }
+            }
+        }
+    }
+
     pub fn feature_extension_bits(&self) -> CPUIdResult<CPUFeatureExtensionBits> {
-        if self.high_value < 7 {
+        if self.high_value < 0x7 {
             Err(CPUIdErr::OutOfRange(self.high_value, 1))
         } else {
             Ok(CPUFeatureExtensionBits::new())
@@ -115,9 +136,10 @@ mod tests {
                     println!("CPU Supports AVX2!");
                 }
                 // CPU Stepping, Model, and Family Bits
-                let cpuinfo = cpuid.stepping_bits().unwrap();
+                let cpuinfo = cpuid.smf_bits().unwrap();
                 println!("Other Random info\n\tstepping id: {}\tmodel id: {}\t family id: {}",
                          cpuinfo.stepping(), cpuinfo.model(), cpuinfo.family());
+                println!("{}", cpuid.brand_string().unwrap());
             },
             None => { println!("Could not obtain feature information"); }
         }

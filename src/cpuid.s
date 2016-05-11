@@ -10,6 +10,7 @@
 .global cpuid_get_stepping_bits
 .global cpuid_get_ext_bits
 .global cpuid_get_ext_feature_bits
+.global cpuid_get_brand_string
 
 cpuid_get_name:
     pushq %rbx
@@ -84,5 +85,23 @@ cpuid_get_ext_bits:
     cpuid
     movl %edx, (%rdi)
     movl %ecx, 0x4(%rdi)
+    popq %rbx
+    ret
+
+cpuid_get_brand_string:
+    pushq %rbx
+    movq $0x80000002, %rax
+    movq %rax, %rsi
+.L0:
+    cpuid
+    movl %eax, (%rdi)
+    movl %ebx, 0x4(%rdi)
+    movl %ecx, 0x8(%rdi)
+    movl %edx, 0xc(%rdi)
+    addq $0x10, %rdi
+    addq $0x1, %rsi
+    movq %rsi, %rax
+    cmpl $0x80000004, %esi
+    jle .L0
     popq %rbx
     ret

@@ -44,6 +44,8 @@
                 let cpuinfo = cpuid.stepping_bits().unwrap();
                 println!("Other Random info\n\tstepping id: {}\tmodel id: {}\t family id: {}",
                          cpuinfo.stepping(), cpuinfo.model(), cpuinfo.family());
+                // 48 byte CPU Brand String
+                println!("Brand string: {}", cpuid.brand_string().unwrap());
             },
             None => { println!("Could not obtain feature information"); }
         }
