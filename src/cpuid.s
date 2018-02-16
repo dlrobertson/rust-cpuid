@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-.section .text
+.text
 .global cpuid_get_name
 .global cpuid_get_ext_fn_max
 .global cpuid_get_info_bits
