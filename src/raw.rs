@@ -26,7 +26,7 @@ pub unsafe fn get_ext_fn_max() -> u32 {
 pub unsafe fn get_brand_string(bytes: &mut [u8; 48]) {
     asm!("movl $$0x80000002, %eax
           movl %eax, %esi
-          .L0:
+          0:
           cpuid
           movl %eax, (%rdi)
           movl %ebx, 0x4(%rdi)
@@ -36,7 +36,7 @@ pub unsafe fn get_brand_string(bytes: &mut [u8; 48]) {
           addl $$0x1, %esi
           movl %esi, %eax
           cmpl $$0x80000004, %esi
-          jle .L0"
+          jle 0b"
          : : "{rdi}"(bytes.as_ptr()) : "rdi", "eax", "esi", "ebx", "ecx", "edx", "memory");
 }
 
