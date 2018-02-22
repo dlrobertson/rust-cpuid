@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use common::{cpuid_get_info_bits, cpuid_get_stepping_bits};
+use raw;
 
 #[repr(u64)]
 pub enum FeatureBit {
@@ -74,9 +74,8 @@ pub struct CPUFeatureBits(u64);
 
 impl CPUFeatureBits {
     pub fn new() -> CPUFeatureBits {
-        let mut features: u64 = 0;
-        unsafe {
-            cpuid_get_info_bits(&mut features as *mut u64);
+        let features: u64 = unsafe {
+            raw::get_info_bits()
         };
         CPUFeatureBits(features)
     }
@@ -101,28 +100,33 @@ impl Into<u64> for CPUFeatureBits {
     }
 }
 
-pub struct CPUInfo(u8, u8, u8);
+pub struct CPUInfo(u32);
 
 impl CPUInfo {
     pub fn new() -> CPUInfo {
-        let (mut stepping, mut model, mut family): (u8, u8, u8) = (0, 0, 0);
-        unsafe {
-            cpuid_get_stepping_bits(&mut stepping as *mut u8,
-                                    &mut model as *mut u8,
-                                    &mut family as *mut u8);
+        let bits = unsafe {
+            raw::get_stepping_bits()
         };
-        CPUInfo(stepping, model, family)
+        CPUInfo(bits)
     }
 
     pub fn stepping(&self) -> u8 {
-        self.0
+        (self.0 & 0x000000f) as u8
     }
 
     pub fn model(&self) -> u8 {
-        self.1
+        ((self.0 & 0x00000f0) >> 4) as u8
     }
 
     pub fn family(&self) -> u8 {
-        self.2
+        ((self.0 & 0x0000f00) >> 8) as u8
+    }
+
+    pub fn extended_model(&self) -> u8 {
+        ((self.0 & 0x00f0000) >> 16) as u8
+    }
+
+    pub fn extended_family(&self) -> u8 {
+        ((self.0 & 0xff00000) >> 20) as u8
     }
 }

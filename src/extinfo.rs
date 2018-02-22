@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use common::cpuid_get_ext_bits;
+use raw;
 
 #[repr(u64)]
 pub enum ExtensionBit {
@@ -66,9 +66,8 @@ pub struct CPUExtensionBits(u64);
 
 impl CPUExtensionBits {
     pub fn new() -> CPUExtensionBits {
-        let mut extensions: u64 = 0;
-        unsafe {
-            cpuid_get_ext_bits(&mut extensions as *mut u64);
+        let extensions: u64 = unsafe {
+            raw::get_ext_bits()
         };
         CPUExtensionBits(extensions)
     }

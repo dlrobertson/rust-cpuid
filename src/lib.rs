@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![feature(asm)]
 
-pub mod common;
+mod common;
 pub mod featinfo;
 pub mod extinfo;
 pub mod featext;
+mod raw;
 
 use std::str;
 use common::{CPUIdErr, CPUIdResult};
-use common::{cpuid_get_ext_fn_max, cpuid_get_name, cpuid_get_brand_string};
 use featinfo::{CPUFeatureBits, CPUInfo};
 use extinfo::{CPUExtensionBits};
 use featext::{CPUFeatureExtensionBits};
@@ -25,8 +26,8 @@ pub struct CPUId {
 impl CPUId {
     pub fn new() -> CPUId {
         let (high_value, vendor_str) = unsafe {
-            let res: [u8; 12] = [0; 12];
-            let value = cpuid_get_name(res.as_ptr() as *mut u8);
+            let mut res: [u8; 12] = [0; 12];
+            let value = raw::get_name(&mut res);
             let vendor_str = match str::from_utf8(&res) {
                 Ok(res) => res.to_owned(),
                 Err(_) => panic!("Could not create the vendor string")
@@ -36,7 +37,7 @@ impl CPUId {
         let max = if high_value < 1 {
             None
         } else {
-            Some(unsafe { cpuid_get_ext_fn_max() })
+            Some(unsafe { raw::get_ext_fn_max() })
         };
         CPUId {
             vendor_str: vendor_str,
@@ -86,8 +87,8 @@ impl CPUId {
             Err(CPUIdErr::OutOfRange(self.high_value, 1))
         } else {
             unsafe {
-                let res: [u8; 48] = [0; 48];
-                cpuid_get_brand_string(res.as_ptr() as *mut u8);
+                let mut res = [0u8; 48];
+                raw::get_brand_string(&mut res);
                 let brand_str = str::from_utf8(&res);
                 match brand_str {
                     Ok(res) => Ok(res.to_owned()),
