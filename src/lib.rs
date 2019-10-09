@@ -3,46 +3,46 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(asm)]
+#![no_std]
+
+#[cfg(test)]
+extern crate alloc;
+#[cfg(test)]
+#[macro_use]
+extern crate std;
 
 mod common;
-pub mod featinfo;
 pub mod extinfo;
 pub mod featext;
+pub mod featinfo;
 mod raw;
 
-use std::str;
-use common::{CPUIdErr, CPUIdResult};
-use featinfo::{CPUFeatureBits, CPUInfo};
-use extinfo::{CPUExtensionBits};
-use featext::{CPUFeatureExtensionBits};
+use crate::common::{CPUIdErr, CPUIdResult};
+use crate::extinfo::CPUExtensionBits;
+use crate::featext::CPUFeatureExtensionBits;
+use crate::featinfo::{CPUFeatureBits, CPUInfo};
+use core::str;
 
 #[derive(Debug)]
 pub struct CPUId {
-    vendor_str: String,
+    vendor_str: [u8; 12],
     high_value: u32,
-    ext_fn_max: Option<u32>
+    ext_fn_max: Option<u32>,
 }
 
 impl CPUId {
     pub fn new() -> CPUId {
-        let (high_value, vendor_str) = unsafe {
-            let mut res: [u8; 12] = [0; 12];
-            let value = raw::get_name(&mut res);
-            let vendor_str = match str::from_utf8(&res) {
-                Ok(res) => res.to_owned(),
-                Err(_) => panic!("Could not create the vendor string")
-            };
-            (value, vendor_str)
-        };
+        let mut res: [u8; 12] = [0; 12];
+        let high_value = unsafe { raw::get_name(&mut res) };
         let max = if high_value < 1 {
             None
         } else {
             Some(unsafe { raw::get_ext_fn_max() })
         };
         CPUId {
-            vendor_str: vendor_str,
+            vendor_str: res,
             high_value: high_value,
-            ext_fn_max: max
+            ext_fn_max: max,
         }
     }
 
@@ -50,8 +50,8 @@ impl CPUId {
         self.high_value
     }
 
-    pub fn vendor(&self) -> String {
-        self.vendor_str.clone()
+    pub fn vendor<'a, 'b: 'a>(&'b self) -> Result<&'a str, str::Utf8Error> {
+        str::from_utf8(&self.vendor_str)
     }
 
     pub fn ext_fn_max(&self) -> Option<u32> {
@@ -82,21 +82,16 @@ impl CPUId {
         }
     }
 
-    pub fn brand_string(&self) -> CPUIdResult<String> {
+    pub fn brand_string(&self, buf: &mut [u8]) -> CPUIdResult<()> {
         if self.ext_fn_max.map(|x| x <= 0x80000004).unwrap_or(false) {
             Err(CPUIdErr::OutOfRange(self.high_value, 1))
-        } else {
+        } else if buf.len() >= 48 {
             unsafe {
-                let mut res = [0u8; 48];
-                raw::get_brand_string(&mut res);
-                let brand_str = str::from_utf8(&res);
-                match brand_str {
-                    Ok(res) => Ok(res.to_owned()),
-                    Err(_) => Err(
-                        CPUIdErr::Other("Could not create brand string".to_owned())
-                        )
-                }
+                raw::get_brand_string(buf);
             }
+            Ok(())
+        } else {
+            Err(CPUIdErr::BufferTooSmall)
         }
     }
 
@@ -112,13 +107,14 @@ impl CPUId {
 #[cfg(test)]
 mod tests {
     use super::CPUId;
-    use featinfo::FeatureBit;
-    use extinfo::ExtensionBit;
-    use featext::FeatureExtensionBit;
+    use crate::extinfo::ExtensionBit;
+    use crate::featext::FeatureExtensionBit;
+    use crate::featinfo::FeatureBit;
+
     #[test]
     fn it_works() {
         let cpuid = CPUId::new();
-        println!("Vendor string: {}", cpuid.vendor());
+        println!("Vendor string: {}", cpuid.vendor().unwrap());
         match cpuid.ext_fn_max() {
             Some(_) => {
                 // CPU Feature Bits
@@ -138,11 +134,19 @@ mod tests {
                 }
                 // CPU Stepping, Model, and Family Bits
                 let cpuinfo = cpuid.smf_bits().unwrap();
-                println!("Other Random info\n\tstepping id: {}\tmodel id: {}\t family id: {}",
-                         cpuinfo.stepping(), cpuinfo.model(), cpuinfo.family());
-                println!("{}", cpuid.brand_string().unwrap());
-            },
-            None => { println!("Could not obtain feature information"); }
+                println!(
+                    "Other Random info\n\tstepping id: {}\tmodel id: {}\t family id: {}",
+                    cpuinfo.stepping(),
+                    cpuinfo.model(),
+                    cpuinfo.family()
+                );
+                let mut buf = [0; 48];
+                cpuid.brand_string(&mut buf).unwrap();
+                println!("{}", std::str::from_utf8(&buf).unwrap());
+            }
+            None => {
+                println!("Could not obtain feature information");
+            }
         }
     }
 }

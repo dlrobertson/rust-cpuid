@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-use raw;
+use crate::raw;
 
 #[repr(u64)]
 pub enum ExtensionBit {
@@ -59,16 +58,14 @@ pub enum ExtensionBit {
     PerfctrNb = 0x80000000000000,
     Dbx = 0x200000000000000,
     PerfTsc = 0x400000000000000,
-    PcxL2i = 0x800000000000000
+    PcxL2i = 0x800000000000000,
 }
 
 pub struct CPUExtensionBits(u64);
 
 impl CPUExtensionBits {
     pub fn new() -> CPUExtensionBits {
-        let extensions: u64 = unsafe {
-            raw::get_ext_bits()
-        };
+        let extensions: u64 = unsafe { raw::get_ext_bits() };
         CPUExtensionBits(extensions)
     }
 
@@ -91,4 +88,3 @@ impl Into<u64> for CPUExtensionBits {
         self.0
     }
 }
-

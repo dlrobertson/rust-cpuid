@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-use raw;
+use crate::raw;
 
 #[repr(u64)]
 pub enum FeatureExtensionBit {
@@ -36,16 +35,14 @@ pub enum FeatureExtensionBit {
     Avx512bw = 0x40000000,
     Avx512vi = 0x80000000,
     Prefetchwt1 = 0x100000000,
-    Avx512vbmi = 0x200000000
+    Avx512vbmi = 0x200000000,
 }
 
 pub struct CPUFeatureExtensionBits(u64);
 
 impl CPUFeatureExtensionBits {
     pub fn new() -> CPUFeatureExtensionBits {
-        let extensions: u64 = unsafe {
-            raw::get_ext_feature_bits()
-        };
+        let extensions: u64 = unsafe { raw::get_ext_feature_bits() };
         CPUFeatureExtensionBits(extensions)
     }
 

@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-use raw;
+use crate::raw;
 
 #[repr(u64)]
 pub enum FeatureBit {
@@ -28,7 +27,7 @@ pub enum FeatureBit {
     Clfsh = 0x80000,
     Ds = 0x200000,
     Acpi = 0x400000,
-    Mmx= 0x800000,
+    Mmx = 0x800000,
     Fxsr = 0x1000000,
     Sse = 0x2000000,
     Sse2 = 0x4000000,
@@ -67,16 +66,14 @@ pub enum FeatureBit {
     Avx = 0x1000000000000000,
     F16c = 0x2000000000000000,
     Rdrnd = 0x4000000000000000,
-    HyperVisor = 0x8000000000000000
+    HyperVisor = 0x8000000000000000,
 }
 
 pub struct CPUFeatureBits(u64);
 
 impl CPUFeatureBits {
     pub fn new() -> CPUFeatureBits {
-        let features: u64 = unsafe {
-            raw::get_info_bits()
-        };
+        let features: u64 = unsafe { raw::get_info_bits() };
         CPUFeatureBits(features)
     }
 
@@ -104,9 +101,7 @@ pub struct CPUInfo(u32);
 
 impl CPUInfo {
     pub fn new() -> CPUInfo {
-        let bits = unsafe {
-            raw::get_stepping_bits()
-        };
+        let bits = unsafe { raw::get_stepping_bits() };
         CPUInfo(bits)
     }
 

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
 pub unsafe fn get_name(bytes: &mut [u8; 12]) -> u32 {
     let value: u32;
     asm!("xorl %eax, %eax
@@ -23,7 +21,7 @@ pub unsafe fn get_ext_fn_max() -> u32 {
     value
 }
 
-pub unsafe fn get_brand_string(bytes: &mut [u8; 48]) {
+pub unsafe fn get_brand_string(bytes: &mut [u8]) {
     asm!("movl $$0x80000002, %eax
           movl %eax, %esi
           0:

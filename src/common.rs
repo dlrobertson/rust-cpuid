@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 pub type CPUIdResult<T> = Result<T, CPUIdErr>;
 
 #[derive(Debug)]
 pub enum CPUIdErr {
-    NotImplemented(String),
     OutOfRange(u32, u32),
-    Other(String)
+    BadBrandString,
+    BufferTooSmall,
 }

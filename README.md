@@ -46,7 +46,7 @@
 ```rust
     use cpuid::CPUId;
     use cpuid::featext::ExtensionBit;
-    
+
     fn supports_syscall() -> bool {
         let cpuid = CPUId::new();
         match cpuid.extension_bits() {
